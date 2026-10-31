@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import Group
@@ -6,15 +6,19 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 
 from fauna.models import Especie, Habitat, Zona
 from operaciones.models import (
     EntregaAlimento,
     InventarioAlimento,
     Mantenimiento,
+    RevisionVeterinaria,
     TipoAlimento,
+    Vacuna,
 )
 from personal.models import Cuidador
+from visitas.models import Boleto, Reserva
 
 
 class EntregaAlimentoTests(TestCase):
@@ -190,3 +194,73 @@ class ConfigurarRolesTests(TestCase):
 
         self.assertEqual(Group.objects.filter(name="Cuidador").count(), 1)
         self.assertSetEqual(self.permisos_de("Cuidador"), permisos_antes)
+
+
+class SeedDataTests(TestCase):
+    def test_carga_datos_relacionados_y_es_repetible(self):
+        call_command("seed_data", verbosity=0)
+
+        conteos_primera_carga = {
+            "especies": Especie.objects.count(),
+            "reservas": Reserva.objects.count(),
+            "boletos": Boleto.objects.count(),
+            "entregas": EntregaAlimento.objects.count(),
+            "revisiones": RevisionVeterinaria.objects.count(),
+            "vacunas": Vacuna.objects.count(),
+            "mantenimientos": Mantenimiento.objects.count(),
+        }
+        inventario_primera_carga = list(
+            InventarioAlimento.objects.order_by("tipo_alimento_id").values_list(
+                "tipo_alimento_id",
+                "cantidad_disponible",
+            )
+        )
+
+        call_command("seed_data", verbosity=0)
+
+        conteos_segunda_carga = {
+            "especies": Especie.objects.count(),
+            "reservas": Reserva.objects.count(),
+            "boletos": Boleto.objects.count(),
+            "entregas": EntregaAlimento.objects.count(),
+            "revisiones": RevisionVeterinaria.objects.count(),
+            "vacunas": Vacuna.objects.count(),
+            "mantenimientos": Mantenimiento.objects.count(),
+        }
+        inventario_segunda_carga = list(
+            InventarioAlimento.objects.order_by("tipo_alimento_id").values_list(
+                "tipo_alimento_id",
+                "cantidad_disponible",
+            )
+        )
+
+        self.assertEqual(conteos_primera_carga, conteos_segunda_carga)
+        self.assertEqual(inventario_primera_carga, inventario_segunda_carga)
+        self.assertEqual(conteos_primera_carga["especies"], 6)
+        self.assertEqual(conteos_primera_carga["reservas"], 4)
+        self.assertEqual(conteos_primera_carga["boletos"], 5)
+        self.assertEqual(conteos_primera_carga["entregas"], 6)
+
+    def test_carga_datos_utiles_para_alertas(self):
+        call_command("seed_data", verbosity=0)
+        hoy = timezone.localdate()
+
+        self.assertTrue(
+            Vacuna.objects.filter(fecha_proxima__lt=hoy).exists()
+        )
+        self.assertTrue(
+            Vacuna.objects.filter(
+                fecha_proxima__gte=hoy,
+                fecha_proxima__lte=hoy + timedelta(days=15),
+            ).exists()
+        )
+        self.assertTrue(
+            RevisionVeterinaria.objects.filter(
+                fecha_proxima_revision__lt=hoy,
+            ).exists()
+        )
+        self.assertTrue(
+            Mantenimiento.objects.filter(
+                fecha_proximo_mantenimiento__lt=hoy,
+            ).exists()
+        )
