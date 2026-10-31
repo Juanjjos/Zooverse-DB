@@ -54,6 +54,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "fauna.apps.FaunaConfig",
+    "personal.apps.PersonalConfig",
+    "visitas.apps.VisitasConfig",
+    "operaciones.apps.OperacionesConfig",
+    "reportes.apps.ReportesConfig",
 ]
 
 MIDDLEWARE = [
