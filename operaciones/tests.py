@@ -1,8 +1,10 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.core.management import call_command
 from django.test import TestCase
 
 from fauna.models import Especie, Habitat, Zona
@@ -130,3 +132,61 @@ class MantenimientoTests(TestCase):
 
         with self.assertRaises(IntegrityError), transaction.atomic():
             Mantenimiento.objects.create(zona=zona, habitat=habitat, **datos)
+
+
+class ConfigurarRolesTests(TestCase):
+    def setUp(self):
+        call_command("configurar_roles", verbosity=0)
+
+    def permisos_de(self, nombre_grupo):
+        return set(
+            Group.objects.get(name=nombre_grupo)
+            .permissions.values_list(
+                "content_type__app_label",
+                "codename",
+            )
+        )
+
+    def test_crea_los_cuatro_grupos(self):
+        self.assertSetEqual(
+            set(Group.objects.values_list("name", flat=True)),
+            {"Administrador", "Cuidador", "Guía", "Taquillero"},
+        )
+
+    def test_cuidador_puede_registrar_entregas_y_no_borrar(self):
+        permisos = self.permisos_de("Cuidador")
+
+        self.assertIn(("operaciones", "add_entregaalimento"), permisos)
+        self.assertIn(("operaciones", "view_entregaalimento"), permisos)
+        self.assertNotIn(("operaciones", "delete_entregaalimento"), permisos)
+        self.assertNotIn(("visitas", "add_boleto"), permisos)
+
+    def test_guia_tiene_acceso_de_solo_lectura_a_itinerarios(self):
+        permisos = self.permisos_de("Guía")
+
+        self.assertIn(("visitas", "view_itinerario"), permisos)
+        self.assertIn(("visitas", "view_asignacionguia"), permisos)
+        self.assertNotIn(("visitas", "change_itinerario"), permisos)
+        self.assertNotIn(("visitas", "add_reserva"), permisos)
+
+    def test_taquillero_puede_vender_boletos_sin_modificar_boleto_existente(self):
+        permisos = self.permisos_de("Taquillero")
+
+        self.assertIn(("visitas", "add_boleto"), permisos)
+        self.assertIn(("visitas", "add_reserva"), permisos)
+        self.assertNotIn(("visitas", "change_boleto"), permisos)
+        self.assertNotIn(("visitas", "delete_boleto"), permisos)
+
+    def test_administrador_tiene_permisos_completos_de_modelos_del_dominio(self):
+        permisos = self.permisos_de("Administrador")
+
+        self.assertIn(("fauna", "delete_especie"), permisos)
+        self.assertIn(("visitas", "change_boleto"), permisos)
+        self.assertIn(("operaciones", "delete_mantenimiento"), permisos)
+
+    def test_ejecucion_repetida_no_duplica_grupos_ni_permisos(self):
+        permisos_antes = self.permisos_de("Cuidador")
+        call_command("configurar_roles", verbosity=0)
+
+        self.assertEqual(Group.objects.filter(name="Cuidador").count(), 1)
+        self.assertSetEqual(self.permisos_de("Cuidador"), permisos_antes)
