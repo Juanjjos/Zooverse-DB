@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reportes y estadísticas | ZooVerse</title>
+    <style>
+        :root { color-scheme: light; font-family: system-ui, sans-serif; }
+        body { margin: 0; background: #f3f6f4; color: #17231d; }
+        header { padding: 1.5rem max(1rem, calc((100% - 1100px) / 2)); background: #174b37; color: white; }
+        main { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem 2rem; }
+        section { margin: 1rem 0; padding: 1rem 1.25rem; background: white; border-radius: .6rem; box-shadow: 0 1px 5px #17231d12; }
+        h1, h2 { margin-top: 0; }
+        form { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+        label { display: grid; gap: .3rem; }
+        input, select, button { padding: .5rem; font: inherit; }
+        button { border: 0; border-radius: .3rem; color: white; background: #176345; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: .55rem; border-bottom: 1px solid #dfe7e2; text-align: left; vertical-align: top; }
+        th { background: #edf4ef; }
+        .errores { color: #9c2525; }
+        .vacio { color: #59665f; }
+        @media (max-width: 650px) { table { display: block; overflow-x: auto; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ZooVerse: reportes y estadísticas</h1>
+        <p>Consultas de gestión basadas en los registros del zoológico.</p>
+    </header>
+    <main>
+        <section>
+            <h2>Filtros</h2>
+            <form method="get">
+                {{ formulario.non_field_errors }}
+                <label>{{ formulario.fecha_inicio.label }} {{ formulario.fecha_inicio }}</label>
+                <label>{{ formulario.fecha_fin.label }} {{ formulario.fecha_fin }}</label>
+                <label>{{ formulario.especie.label }} {{ formulario.especie }}</label>
+                <button type="submit">Aplicar filtros</button>
+                <a href="{% url 'reportes:inicio' %}">Limpiar</a>
+            </form>
+            {% if formulario.errors %}
+                <div class="errores">{{ formulario.errors }}</div>
+            {% endif %}
+        </section>
+
+        {% if datos_reportes %}
+        <section>
+            <h2>Especies por zona y hábitat</h2>
+            <table>
+                <thead><tr><th>Especie</th><th>Zona</th><th>Hábitats</th></tr></thead>
+                <tbody>
+                    {% for especie in datos_reportes.especies %}
+                    <tr>
+                        <td>{{ especie.nombre_espanol }} ({{ especie.nombre_cientifico }})</td>
+                        <td>{{ especie.zona.nombre }}</td>
+                        <td>{% for habitat in especie.habitats.all %}{{ habitat.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}Sin hábitats{% endfor %}</td>
+                    </tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay especies registradas.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Itinerarios más solicitados</h2>
+            <table>
+                <thead><tr><th>Itinerario</th><th>Reservas</th><th>Personas reservadas</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.itinerarios_solicitados %}
+                    <tr><td>{{ fila.itinerario__codigo }}</td><td>{{ fila.cantidad_reservas }}</td><td>{{ fila.personas_reservadas }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay reservas en el periodo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Ingresos por día</h2>
+            <table>
+                <thead><tr><th>Fecha</th><th>Boletos</th><th>Ingresos</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.ingresos.por_dia %}
+                    <tr><td>{{ fila.fecha|date:"d/m/Y" }}</td><td>{{ fila.cantidad }}</td><td>{{ fila.ingresos }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay boletos en el periodo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Ingresos por mes</h2>
+            <table>
+                <thead><tr><th>Mes</th><th>Boletos</th><th>Ingresos</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.ingresos.por_mes %}
+                    <tr><td>{{ fila.mes|date:"F Y" }}</td><td>{{ fila.cantidad }}</td><td>{{ fila.ingresos }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay ingresos en el periodo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Ingresos por tipo de boleto</h2>
+            <table>
+                <thead><tr><th>Tipo</th><th>Boletos</th><th>Ingresos</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.ingresos.por_tipo %}
+                    <tr><td>{{ fila.tipo_display }}</td><td>{{ fila.cantidad }}</td><td>{{ fila.ingresos }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay ingresos en el periodo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Historial médico</h2>
+            <table>
+                <thead><tr><th>Fecha</th><th>Especie</th><th>Registro</th><th>Detalle</th><th>Próxima fecha</th></tr></thead>
+                <tbody>
+                    {% for evento in datos_reportes.historial_medico %}
+                    <tr><td>{{ evento.fecha|date:"d/m/Y" }}</td><td>{{ evento.especie }}</td><td>{{ evento.tipo }}</td><td>{{ evento.detalle }}</td><td>{{ evento.fecha_proxima|date:"d/m/Y"|default:"—" }}</td></tr>
+                    {% empty %}<tr><td colspan="5" class="vacio">No hay registros médicos para esta selección.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Consumo de alimento por especie y periodo</h2>
+            <table>
+                <thead><tr><th>Especie</th><th>Alimento</th><th>Cantidad</th><th>Unidad</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.consumo_alimento %}
+                    <tr><td>{{ fila.especie__nombre_espanol }}</td><td>{{ fila.tipo_alimento__nombre }}</td><td>{{ fila.cantidad_consumida }}</td><td>{{ fila.tipo_alimento__unidad }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="vacio">No hay entregas en el periodo.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Estadísticas</h2>
+            <h3>Ocupación promedio diaria de itinerarios</h3>
+            {% if datos_reportes.ocupacion.promedio_general != None %}
+                <p>Promedio de las combinaciones itinerario-día con reservas: {{ datos_reportes.ocupacion.promedio_general|floatformat:1 }} %</p>
+            {% else %}
+                <p class="vacio">No hay reservas para calcular la ocupación.</p>
+            {% endif %}
+            <table>
+                <thead><tr><th>Itinerario</th><th>Promedio de ocupación</th><th>Días con reservas</th></tr></thead>
+                <tbody>
+                    {% for fila in datos_reportes.ocupacion.por_itinerario %}
+                    <tr><td>{{ fila.codigo }}</td><td>{{ fila.promedio_porcentaje|floatformat:1 }} %</td><td>{{ fila.dias_con_reservas }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay ocupaciones que mostrar.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+            <h3>Especie con más revisiones</h3>
+            {% if datos_reportes.especie_mas_revisiones %}
+                <p>{{ datos_reportes.especie_mas_revisiones.especie__nombre_espanol }}: {{ datos_reportes.especie_mas_revisiones.cantidad }} revisiones</p>
+            {% else %}
+                <p class="vacio">No hay revisiones en el periodo.</p>
+            {% endif %}
+            <h3>Mayor consumo por unidad comparable</h3>
+            <p class="vacio">Las cantidades se comparan solo dentro de la misma dimensión (masa, volumen o unidades), para no mezclar medidas incompatibles.</p>
+            <ul>
+                {% for alimento in datos_reportes.alimento_mas_consumido %}
+                <li>{{ alimento.dimension|title }}: {{ alimento.tipo_alimento__nombre }} ({{ alimento.cantidad_normalizada }} {{ alimento.unidad_normalizada }})</li>
+                {% empty %}<li class="vacio">No hay entregas en el periodo.</li>{% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>
