@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alertas | ZooVerse</title>
+    <style>
+        :root { color-scheme: light; font-family: system-ui, sans-serif; }
+        body { margin: 0; background: #f3f6f4; color: #17231d; }
+        header { padding: 1.5rem max(1rem, calc((100% - 1100px) / 2)); background: #174b37; color: white; }
+        main { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem 2rem; }
+        section { margin: 1rem 0; padding: 1rem 1.25rem; background: white; border-radius: .6rem; box-shadow: 0 1px 5px #17231d12; }
+        h1, h2 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: .55rem; border-bottom: 1px solid #dfe7e2; text-align: left; vertical-align: top; }
+        th { background: #edf4ef; }
+        .vacio { color: #59665f; }
+        .vencida { color: #9c2525; font-weight: 700; }
+        nav { display: flex; gap: 1rem; }
+        header a { color: white; }
+        @media (max-width: 650px) { table { display: block; overflow-x: auto; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ZooVerse: panel de alertas</h1>
+        <p>Alertas vigentes al {{ alertas.hoy|date:"d/m/Y" }}.</p>
+        <nav>
+            <a href="{% url 'reportes:inicio' %}">Reportes y estadísticas</a>
+            <a href="{% url 'admin:index' %}">Administración</a>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Vacunas vencidas o próximas (15 días)</h2>
+            <table>
+                <thead><tr><th>Especie</th><th>Vacuna</th><th>Fecha próxima</th><th>Estado</th></tr></thead>
+                <tbody>
+                    {% for vacuna in alertas.vacunas %}
+                    <tr>
+                        <td>{{ vacuna.especie.nombre_espanol }}</td>
+                        <td>{{ vacuna.nombre }}</td>
+                        <td>{{ vacuna.fecha_proxima|date:"d/m/Y" }}</td>
+                        <td>{% if vacuna.fecha_proxima < alertas.hoy %}<span class="vencida">Vencida</span>{% elif vacuna.fecha_proxima == alertas.hoy %}<span class="vencida">Vence hoy</span>{% else %}Próxima{% endif %}</td>
+                    </tr>
+                    {% empty %}<tr><td colspan="4" class="vacio">No hay vacunas vencidas o próximas a vencer.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Revisiones veterinarias pendientes</h2>
+            <table>
+                <thead><tr><th>Especie</th><th>Diagnóstico anterior</th><th>Próxima revisión</th></tr></thead>
+                <tbody>
+                    {% for revision in alertas.revisiones_pendientes %}
+                    <tr><td>{{ revision.especie.nombre_espanol }}</td><td>{{ revision.diagnostico }}</td><td>{{ revision.fecha_proxima_revision|date:"d/m/Y" }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay revisiones pendientes.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Inventario por debajo del umbral mínimo</h2>
+            <table>
+                <thead><tr><th>Alimento</th><th>Disponible</th><th>Umbral mínimo</th><th>Unidad</th></tr></thead>
+                <tbody>
+                    {% for inventario in alertas.inventarios_bajos %}
+                    <tr><td>{{ inventario.tipo_alimento.nombre }}</td><td>{{ inventario.cantidad_disponible }}</td><td>{{ inventario.umbral_minimo }}</td><td>{{ inventario.tipo_alimento.unidad }}</td></tr>
+                    {% empty %}<tr><td colspan="4" class="vacio">No hay inventario por debajo del umbral.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Mantenimientos vencidos</h2>
+            <table>
+                <thead><tr><th>Ubicación</th><th>Descripción</th><th>Fecha límite</th></tr></thead>
+                <tbody>
+                    {% for mantenimiento in alertas.mantenimientos_vencidos %}
+                    <tr>
+                        <td>{% if mantenimiento.zona_id %}Zona: {{ mantenimiento.zona.nombre }}{% else %}Hábitat: {{ mantenimiento.habitat.nombre }}{% endif %}</td>
+                        <td>{{ mantenimiento.descripcion }}</td>
+                        <td>{{ mantenimiento.fecha_proximo_mantenimiento|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay mantenimientos vencidos.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Itinerarios con cupo completo hoy</h2>
+            <table>
+                <thead><tr><th>Itinerario</th><th>Personas contabilizadas</th><th>Cupo máximo</th></tr></thead>
+                <tbody>
+                    {% for fila in alertas.itinerarios_llenos %}
+                    <tr><td>{{ fila.itinerario.codigo }}</td><td>{{ fila.personas }}</td><td>{{ fila.cupo_maximo }}</td></tr>
+                    {% empty %}<tr><td colspan="3" class="vacio">No hay itinerarios con el cupo completo hoy.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

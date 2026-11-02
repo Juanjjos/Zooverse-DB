@@ -8,9 +8,18 @@ from django.urls import reverse
 from django.utils import timezone
 
 from fauna.models import Especie
-from operaciones.models import EntregaAlimento, TipoAlimento
+from operaciones.models import (
+    EntregaAlimento,
+    InventarioAlimento,
+    Mantenimiento,
+    RevisionVeterinaria,
+    TipoAlimento,
+    Vacuna,
+)
 from personal.models import Cuidador
+from reportes.alertas import obtener_alertas
 from reportes.consultas import construir_datos_reportes
+from visitas.models import Itinerario
 
 
 class ReportesTests(TestCase):
@@ -144,3 +153,93 @@ class ReportesTests(TestCase):
             mayores["masa"]["cantidad_normalizada"],
             Decimal("11.000"),
         )
+
+
+class PanelAlertasTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_data", verbosity=0)
+        cls.especie = Especie.objects.get(nombre_cientifico="Panthera leo")
+        cls.hoy = timezone.localdate()
+        cls.grupo_administrador, _ = Group.objects.get_or_create(
+            name="Administrador"
+        )
+
+    def setUp(self):
+        self.administrador = User.objects.create_user(
+            username="admin_alertas",
+            password="prueba-segura-123",
+        )
+        self.administrador.groups.add(self.grupo_administrador)
+
+    def test_incluye_las_cinco_categorias_de_alertas(self):
+        heno = TipoAlimento.objects.get(nombre="Heno")
+        inventario = InventarioAlimento.objects.get(tipo_alimento=heno)
+        inventario.cantidad_disponible = inventario.umbral_minimo - Decimal("1.000")
+        inventario.save(update_fields=["cantidad_disponible"])
+
+        itinerario = Itinerario.objects.get(codigo="SAB-01")
+        itinerario.cupo_maximo = 9
+        itinerario.save(update_fields=["cupo_maximo"])
+
+        alertas = obtener_alertas(self.hoy)
+
+        self.assertTrue(alertas["vacunas"])
+        self.assertTrue(alertas["revisiones_pendientes"])
+        self.assertIn(inventario, alertas["inventarios_bajos"])
+        self.assertTrue(alertas["mantenimientos_vencidos"])
+        self.assertTrue(
+            any(
+                fila["itinerario"].pk == itinerario.pk
+                and fila["personas"] == fila["cupo_maximo"]
+                for fila in alertas["itinerarios_llenos"]
+            )
+        )
+
+    def test_vacuna_a_mas_de_quince_dias_no_genera_alerta(self):
+        vacuna_lejana = Vacuna.objects.create(
+            especie=self.especie,
+            nombre="Vacuna futura fuera de ventana",
+            fecha_aplicacion=self.hoy,
+            fecha_proxima=self.hoy + timedelta(days=16),
+        )
+
+        alertas = obtener_alertas(self.hoy)
+
+        self.assertNotIn(vacuna_lejana, alertas["vacunas"])
+
+    def test_revision_con_fecha_futura_no_esta_pendiente(self):
+        revision_futura = RevisionVeterinaria.objects.create(
+            especie=self.especie,
+            fecha=self.hoy - timedelta(days=5),
+            diagnostico="Control preventivo.",
+            fecha_proxima_revision=self.hoy + timedelta(days=1),
+        )
+
+        alertas = obtener_alertas(self.hoy)
+
+        self.assertNotIn(revision_futura, alertas["revisiones_pendientes"])
+
+    def test_acceso_al_panel_restringido_a_administradores(self):
+        self.client.force_login(self.administrador)
+        respuesta_admin = self.client.get(reverse("reportes:alertas"))
+        self.assertEqual(respuesta_admin.status_code, 200)
+
+        usuario = User.objects.create_user(
+            username="sin_rol_alertas",
+            password="prueba-segura-123",
+        )
+        self.client.force_login(usuario)
+        respuesta_usuario = self.client.get(reverse("reportes:alertas"))
+        self.assertEqual(respuesta_usuario.status_code, 403)
+
+    def test_panel_muestra_todas_las_secciones_de_alertas(self):
+        self.client.force_login(self.administrador)
+
+        respuesta = self.client.get(reverse("reportes:alertas"))
+
+        self.assertContains(respuesta, "Vacunas vencidas o próximas (15 días)")
+        self.assertContains(respuesta, "Revisiones veterinarias pendientes")
+        self.assertContains(respuesta, "Inventario por debajo del umbral mínimo")
+        self.assertContains(respuesta, "Mantenimientos vencidos")
+        self.assertContains(respuesta, "Itinerarios con cupo completo hoy")
