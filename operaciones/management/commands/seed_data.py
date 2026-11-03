@@ -266,11 +266,11 @@ class Command(BaseCommand):
             ("Chelonia mydas", -60, "Evaluación de caparazón satisfactoria.", 120),
         ]:
             fecha = hoy + timedelta(days=fecha_dias)
-            RevisionVeterinaria.objects.get_or_create(
+            RevisionVeterinaria.objects.update_or_create(
                 especie=especies[codigo],
-                fecha=fecha,
+                diagnostico=diagnostico,
                 defaults={
-                    "diagnostico": diagnostico,
+                    "fecha": fecha,
                     "fecha_proxima_revision": hoy + timedelta(days=proxima_dias),
                 },
             )
@@ -284,11 +284,13 @@ class Command(BaseCommand):
             ("Chelonia mydas", "Vacuna preventiva", -330, 35),
         ]
         for codigo, nombre, aplicacion_dias, proxima_dias in vacunas:
-            Vacuna.objects.get_or_create(
+            Vacuna.objects.update_or_create(
                 especie=especies[codigo],
                 nombre=nombre,
-                fecha_aplicacion=hoy + timedelta(days=aplicacion_dias),
-                defaults={"fecha_proxima": hoy + timedelta(days=proxima_dias)},
+                defaults={
+                    "fecha_aplicacion": hoy + timedelta(days=aplicacion_dias),
+                    "fecha_proxima": hoy + timedelta(days=proxima_dias),
+                },
             )
 
         for indice, (cuidador_nombre, especie_codigo, alimento_nombre, cantidad) in enumerate([
@@ -299,12 +301,14 @@ class Command(BaseCommand):
             ("Camila Torres", "Ailurus fulgens", "Fruta variada", "1.000"),
             ("Camila Torres", "Chelonia mydas", "Pescado", "1.000"),
         ]):
-            EntregaAlimento.objects.get_or_create(
+            EntregaAlimento.objects.update_or_create(
                 cuidador=cuidadores[cuidador_nombre],
                 especie=especies[especie_codigo],
                 tipo_alimento=tipos_alimento[alimento_nombre],
-                fecha=hoy - timedelta(days=indice),
-                defaults={"cantidad": Decimal(cantidad)},
+                defaults={
+                    "fecha": hoy - timedelta(days=indice),
+                    "cantidad": Decimal(cantidad),
+                },
             )
 
         mantenimientos = [
@@ -319,11 +323,11 @@ class Command(BaseCommand):
                 "habitat": habitats,
             }[tipo_ubicacion][nombre_ubicacion]
             campos_ubicacion = {tipo_ubicacion: ubicacion}
-            Mantenimiento.objects.get_or_create(
+            Mantenimiento.objects.update_or_create(
                 **campos_ubicacion,
-                fecha=hoy + timedelta(days=fecha_dias),
                 descripcion=descripcion,
                 defaults={
+                    "fecha": hoy + timedelta(days=fecha_dias),
                     "fecha_proximo_mantenimiento": hoy + timedelta(days=proxima_dias),
                 },
             )
@@ -336,10 +340,10 @@ class Command(BaseCommand):
             ("BIO-01", 10, 2),
         ]:
             fecha = hoy + timedelta(days=fecha_dias)
-            reserva, _ = Reserva.objects.get_or_create(
+            reserva, _ = Reserva.objects.update_or_create(
                 itinerario=itinerarios[codigo],
-                fecha=fecha,
                 cantidad_personas=cantidad,
+                defaults={"fecha": fecha},
             )
             reservas[(codigo, fecha)] = reserva
 
@@ -351,12 +355,17 @@ class Command(BaseCommand):
             ("SAB-01", Boleto.Tipo.GENERAL, 0, "35.00", None),
         ]:
             fecha = hoy + timedelta(days=fecha_dias)
-            reserva = reservas.get(reserva_key) if reserva_key else None
+            if reserva_key:
+                reserva = reservas[reserva_key]
+            else:
+                reserva, _ = Reserva.objects.update_or_create(
+                    itinerario=itinerarios[codigo],
+                    cantidad_personas=1,
+                    defaults={"fecha": fecha},
+                )
             Boleto.objects.get_or_create(
                 tipo=tipo,
-                itinerario=itinerarios[codigo],
                 reserva=reserva,
-                fecha=fecha,
                 precio_pagado=Decimal(precio),
             )
 

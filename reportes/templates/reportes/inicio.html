@@ -80,7 +80,7 @@
                 <thead><tr><th>Fecha</th><th>Boletos</th><th>Ingresos</th></tr></thead>
                 <tbody>
                     {% for fila in datos_reportes.ingresos.por_dia %}
-                    <tr><td>{{ fila.fecha|date:"d/m/Y" }}</td><td>{{ fila.cantidad }}</td><td>{{ fila.ingresos }}</td></tr>
+                    <tr><td>{{ fila.reserva__fecha|date:"d/m/Y" }}</td><td>{{ fila.cantidad }}</td><td>{{ fila.ingresos }}</td></tr>
                     {% empty %}<tr><td colspan="3" class="vacio">No hay boletos en el periodo.</td></tr>{% endfor %}
                 </tbody>
             </table>

@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -198,25 +199,31 @@ class ConfigurarRolesTests(TestCase):
 
 class SeedDataTests(TestCase):
     def test_carga_datos_relacionados_y_es_repetible(self):
-        call_command("seed_data", verbosity=0)
+        fecha_primera_carga = date(2026, 11, 1)
+        fecha_segunda_carga = date(2026, 11, 2)
+        with patch(
+            "operaciones.management.commands.seed_data.timezone.localdate",
+            side_effect=[fecha_primera_carga, fecha_segunda_carga],
+        ):
+            call_command("seed_data", verbosity=0)
 
-        conteos_primera_carga = {
-            "especies": Especie.objects.count(),
-            "reservas": Reserva.objects.count(),
-            "boletos": Boleto.objects.count(),
-            "entregas": EntregaAlimento.objects.count(),
-            "revisiones": RevisionVeterinaria.objects.count(),
-            "vacunas": Vacuna.objects.count(),
-            "mantenimientos": Mantenimiento.objects.count(),
-        }
-        inventario_primera_carga = list(
-            InventarioAlimento.objects.order_by("tipo_alimento_id").values_list(
-                "tipo_alimento_id",
-                "cantidad_disponible",
+            conteos_primera_carga = {
+                "especies": Especie.objects.count(),
+                "reservas": Reserva.objects.count(),
+                "boletos": Boleto.objects.count(),
+                "entregas": EntregaAlimento.objects.count(),
+                "revisiones": RevisionVeterinaria.objects.count(),
+                "vacunas": Vacuna.objects.count(),
+                "mantenimientos": Mantenimiento.objects.count(),
+            }
+            inventario_primera_carga = list(
+                InventarioAlimento.objects.order_by("tipo_alimento_id").values_list(
+                    "tipo_alimento_id",
+                    "cantidad_disponible",
+                )
             )
-        )
 
-        call_command("seed_data", verbosity=0)
+            call_command("seed_data", verbosity=0)
 
         conteos_segunda_carga = {
             "especies": Especie.objects.count(),
@@ -237,9 +244,41 @@ class SeedDataTests(TestCase):
         self.assertEqual(conteos_primera_carga, conteos_segunda_carga)
         self.assertEqual(inventario_primera_carga, inventario_segunda_carga)
         self.assertEqual(conteos_primera_carga["especies"], 6)
-        self.assertEqual(conteos_primera_carga["reservas"], 4)
+        self.assertEqual(conteos_primera_carga["reservas"], 5)
         self.assertEqual(conteos_primera_carga["boletos"], 5)
         self.assertEqual(conteos_primera_carga["entregas"], 6)
+        self.assertEqual(
+            Reserva.objects.get(
+                itinerario__codigo="SAB-01",
+                cantidad_personas=8,
+            ).fecha,
+            fecha_segunda_carga,
+        )
+        self.assertEqual(
+            EntregaAlimento.objects.get(
+                especie__nombre_cientifico="Panthera leo",
+            ).fecha,
+            fecha_segunda_carga,
+        )
+        self.assertEqual(
+            RevisionVeterinaria.objects.get(
+                diagnostico="Control general sin novedades.",
+            ).fecha,
+            fecha_segunda_carga - timedelta(days=45),
+        )
+        self.assertEqual(
+            Vacuna.objects.get(
+                especie__nombre_cientifico="Panthera leo",
+            ).fecha_aplicacion,
+            fecha_segunda_carga - timedelta(days=365),
+        )
+        self.assertEqual(
+            Mantenimiento.objects.get(
+                zona__nombre="Llanuras",
+                descripcion="Inspección de cercas y senderos.",
+            ).fecha,
+            fecha_segunda_carga - timedelta(days=90),
+        )
 
     def test_carga_datos_utiles_para_alertas(self):
         call_command("seed_data", verbosity=0)

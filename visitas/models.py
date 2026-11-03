@@ -1,4 +1,3 @@
-from django.db import models
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Count, Q, Sum
@@ -102,23 +101,11 @@ class Boleto(models.Model):
         choices=Tipo.choices,
         verbose_name="tipo de boleto",
     )
-    itinerario = models.ForeignKey(
-        Itinerario,
-        on_delete=models.PROTECT,
-        related_name="boletos",
-        verbose_name="itinerario",
-    )
     reserva = models.ForeignKey(
         "Reserva",
         on_delete=models.PROTECT,
         related_name="boletos",
-        null=True,
-        blank=True,
         verbose_name="reserva asociada",
-    )
-    fecha = models.DateField(
-        default=timezone.localdate,
-        verbose_name="fecha",
     )
     precio_pagado = models.DecimalField(
         max_digits=10,
@@ -129,7 +116,7 @@ class Boleto(models.Model):
     class Meta:
         verbose_name = "boleto"
         verbose_name_plural = "boletos"
-        ordering = ["-fecha", "tipo"]
+        ordering = ["-reserva__fecha", "tipo"]
         constraints = [
             models.CheckConstraint(
                 condition=Q(precio_pagado__gte=0),
@@ -142,76 +129,57 @@ class Boleto(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        if self.reserva_id is None:
+            raise ValidationError(
+                {"reserva": "Cada boleto debe pertenecer a una reserva."}
+            )
         if self.precio_pagado < 0:
             raise ValidationError(
                 {"precio_pagado": "El precio pagado no puede ser negativo."}
             )
 
         with transaction.atomic():
-            itinerario = (
-                Itinerario.objects.select_for_update()
-                .get(pk=self.itinerario_id)
-            )
-            reserva_asociada = None
-            if self.reserva_id is not None:
-                reserva_asociada = (
-                    Reserva.objects.select_for_update()
-                    .get(pk=self.reserva_id)
+            reserva_guardada_id = self.reserva_id
+            update_fields = kwargs.get("update_fields")
+            anterior = None
+            if self.pk is not None:
+                anterior = (
+                    type(self).objects.select_for_update()
+                    .filter(pk=self.pk)
+                    .first()
                 )
-                if (
-                    reserva_asociada.itinerario_id != self.itinerario_id
-                    or reserva_asociada.fecha != self.fecha
-                ):
-                    raise ValidationError(
-                        {
-                            "reserva": (
-                                "El boleto y su reserva deben corresponder al "
-                                "mismo itinerario y fecha."
-                            )
-                        }
-                    )
+                if anterior is not None and update_fields is not None:
+                    if "reserva" not in update_fields:
+                        reserva_guardada_id = anterior.reserva_id
 
-                boletos_asociados = type(self).objects.filter(
-                    reserva_id=self.reserva_id,
+            reserva_asociada = (
+                Reserva.objects.select_for_update()
+                .get(pk=reserva_guardada_id)
+            )
+
+            boletos_asociados = type(self).objects.filter(
+                reserva_id=reserva_guardada_id,
+            )
+            if self.pk is not None:
+                boletos_asociados = boletos_asociados.exclude(pk=self.pk)
+            if boletos_asociados.count() >= reserva_asociada.cantidad_personas:
+                raise ValidationError(
+                    {
+                        "reserva": (
+                            "La reserva ya tiene un boleto por cada persona."
+                        )
+                    }
                 )
-                if self.pk is not None:
-                    boletos_asociados = boletos_asociados.exclude(pk=self.pk)
-                if boletos_asociados.count() >= reserva_asociada.cantidad_personas:
-                    raise ValidationError(
-                        {
-                            "reserva": (
-                                "La reserva ya tiene un boleto por cada persona."
-                            )
-                        }
-                    )
-            else:
-                reservas_del_dia = Reserva.objects.filter(
-                    itinerario_id=self.itinerario_id,
-                    fecha=self.fecha,
-                )
-                personas_reservadas = reservas_del_dia.aggregate(
-                    total=Sum("cantidad_personas", default=0),
-                )["total"]
-                boletos_sin_reserva = type(self).objects.filter(
-                    itinerario_id=self.itinerario_id,
-                    fecha=self.fecha,
-                    reserva__isnull=True,
-                )
-                if self.pk is not None:
-                    boletos_sin_reserva = boletos_sin_reserva.exclude(pk=self.pk)
-                if personas_reservadas + boletos_sin_reserva.count() + 1 > (
-                    itinerario.cupo_maximo
-                ):
-                    raise ValidationError(
-                        {
-                            "itinerario": (
-                                "La venta excede el cupo disponible del itinerario "
-                                f"para {self.fecha}."
-                            )
-                        }
-                    )
 
             super().save(*args, **kwargs)
+
+    @property
+    def itinerario(self):
+        return self.reserva.itinerario
+
+    @property
+    def fecha(self):
+        return self.reserva.fecha
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.itinerario} ({self.fecha})"
@@ -236,6 +204,12 @@ class Reserva(models.Model):
         verbose_name = "reserva"
         verbose_name_plural = "reservas"
         ordering = ["-fecha", "itinerario"]
+        indexes = [
+            models.Index(
+                fields=["fecha", "itinerario"],
+                name="res_fecha_itinerario_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(cantidad_personas__gt=0),
@@ -293,15 +267,7 @@ class Reserva(models.Model):
             personas_reservadas = reservas_del_dia.aggregate(
                 total=Sum("cantidad_personas", default=0),
             )["total"]
-            boletos_sin_reserva = Boleto.objects.filter(
-                itinerario_id=self.itinerario_id,
-                fecha=fecha_reserva,
-                reserva__isnull=True,
-            ).aggregate(total=Count("id"))["total"]
-            if (
-                personas_reservadas + boletos_sin_reserva + personas_reserva
-                > itinerario.cupo_maximo
-            ):
+            if personas_reservadas + personas_reserva > itinerario.cupo_maximo:
                 raise ValidationError(
                     {
                         "cantidad_personas": (

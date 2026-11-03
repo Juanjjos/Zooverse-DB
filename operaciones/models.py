@@ -12,6 +12,7 @@ class RevisionVeterinaria(models.Model):
         "fauna.Especie",
         on_delete=models.PROTECT,
         related_name="revisiones_veterinarias",
+        db_index=False,
         verbose_name="especie",
     )
     fecha = models.DateField(verbose_name="fecha de revisión")
@@ -26,6 +27,17 @@ class RevisionVeterinaria(models.Model):
         verbose_name = "revisión veterinaria"
         verbose_name_plural = "revisiones veterinarias"
         ordering = ["-fecha"]
+        indexes = [
+            models.Index(fields=["fecha"], name="revision_fecha_idx"),
+            models.Index(
+                fields=["especie", "fecha"],
+                name="revision_especie_fecha_idx",
+            ),
+            models.Index(
+                fields=["fecha_proxima_revision"],
+                name="revision_proxima_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=(
@@ -45,6 +57,7 @@ class Vacuna(models.Model):
         "fauna.Especie",
         on_delete=models.PROTECT,
         related_name="vacunas",
+        db_index=False,
         verbose_name="especie",
     )
     nombre = models.CharField(max_length=120, verbose_name="nombre")
@@ -55,6 +68,13 @@ class Vacuna(models.Model):
         verbose_name = "vacuna"
         verbose_name_plural = "vacunas"
         ordering = ["fecha_proxima"]
+        indexes = [
+            models.Index(fields=["fecha_proxima"], name="vacuna_proxima_idx"),
+            models.Index(
+                fields=["especie", "fecha_aplicacion"],
+                name="vacuna_especie_fecha_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(fecha_proxima__gt=models.F("fecha_aplicacion")),
@@ -197,6 +217,16 @@ class EntregaAlimento(models.Model):
         verbose_name = "entrega de alimento"
         verbose_name_plural = "entregas de alimento"
         ordering = ["-fecha"]
+        indexes = [
+            models.Index(
+                fields=["fecha", "especie"],
+                name="entrega_fecha_especie_idx",
+            ),
+            models.Index(
+                fields=["fecha", "tipo_alimento"],
+                name="entrega_fecha_tipo_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(cantidad__gt=0),
@@ -307,6 +337,12 @@ class Mantenimiento(models.Model):
         verbose_name = "mantenimiento"
         verbose_name_plural = "mantenimientos"
         ordering = ["-fecha"]
+        indexes = [
+            models.Index(
+                fields=["fecha_proximo_mantenimiento"],
+                name="mantenim_proximo_idx",
+            ),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=(

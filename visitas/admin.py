@@ -17,7 +17,7 @@ class AsignacionGuiaInline(admin.TabularInline):
 class BoletoInline(admin.TabularInline):
     model = Boleto
     extra = 0
-    autocomplete_fields = ["reserva"]
+    fields = ["tipo", "precio_pagado"]
 
 
 class ReservaInline(admin.TabularInline):
@@ -37,7 +37,7 @@ class ItinerarioAdmin(admin.ModelAdmin):
     search_fields = ["codigo"]
     filter_horizontal = ["zonas"]
     readonly_fields = ["num_especies_distintas"]
-    inlines = [AsignacionGuiaInline, ReservaInline, BoletoInline]
+    inlines = [AsignacionGuiaInline, ReservaInline]
 
 
 @admin.register(AsignacionGuia)
@@ -54,11 +54,18 @@ class ReservaAdmin(admin.ModelAdmin):
     list_filter = ["fecha", "itinerario"]
     search_fields = ["itinerario__codigo"]
     autocomplete_fields = ["itinerario"]
+    inlines = [BoletoInline]
 
 
 @admin.register(Boleto)
 class BoletoAdmin(admin.ModelAdmin):
     list_display = ["tipo", "itinerario", "fecha", "precio_pagado", "reserva"]
-    list_filter = ["tipo", "fecha", "itinerario"]
-    search_fields = ["itinerario__codigo"]
-    autocomplete_fields = ["itinerario", "reserva"]
+    list_filter = ["tipo"]
+    search_fields = ["reserva__itinerario__codigo"]
+    autocomplete_fields = ["reserva"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "reserva",
+            "reserva__itinerario",
+        )

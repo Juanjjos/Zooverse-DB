@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-from django.db.models import Count, F, Sum
+from django.db.models import F, Sum
 from django.utils import timezone
 
 from operaciones.models import InventarioAlimento, Mantenimiento, RevisionVeterinaria, Vacuna
-from visitas.models import Boleto, Itinerario, Reserva
+from visitas.models import Itinerario, Reserva
 
 
 def obtener_alertas(hoy=None):
@@ -38,25 +38,14 @@ def obtener_alertas(hoy=None):
         .annotate(total=Sum("cantidad_personas"))
         .values_list("itinerario_id", "total")
     )
-    boletos_sin_reserva_por_itinerario = dict(
-        Boleto.objects.filter(fecha=hoy, reserva__isnull=True)
-        .values("itinerario_id")
-        .annotate(total=Count("id"))
-        .values_list("itinerario_id", "total")
-    )
     itinerarios_llenos = []
     for itinerario in Itinerario.objects.order_by("codigo"):
         personas = personas_por_reserva.get(itinerario.pk, 0)
-        boletos_sin_reserva = boletos_sin_reserva_por_itinerario.get(
-            itinerario.pk,
-            0,
-        )
-        ocupacion = personas + boletos_sin_reserva
-        if ocupacion >= itinerario.cupo_maximo:
+        if personas >= itinerario.cupo_maximo:
             itinerarios_llenos.append(
                 {
                     "itinerario": itinerario,
-                    "personas": ocupacion,
+                    "personas": personas,
                     "cupo_maximo": itinerario.cupo_maximo,
                 }
             )

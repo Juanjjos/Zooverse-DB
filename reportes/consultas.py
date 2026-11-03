@@ -44,18 +44,18 @@ def itinerarios_mas_solicitados(fecha_inicio=None, fecha_fin=None):
 
 def ingresos_por_boletos(fecha_inicio=None, fecha_fin=None):
     boletos = _filtrar_periodo(
-        Boleto.objects.all(),
-        "fecha",
+        Boleto.objects.select_related("reserva"),
+        "reserva__fecha",
         fecha_inicio,
         fecha_fin,
     )
     por_dia = (
-        boletos.values("fecha")
+        boletos.values("reserva__fecha")
         .annotate(cantidad=Count("id"), ingresos=Sum("precio_pagado"))
-        .order_by("-fecha")
+        .order_by("-reserva__fecha")
     )
     por_mes = (
-        boletos.annotate(mes=TruncMonth("fecha"))
+        boletos.annotate(mes=TruncMonth("reserva__fecha"))
         .values("mes")
         .annotate(cantidad=Count("id"), ingresos=Sum("precio_pagado"))
         .order_by("-mes")

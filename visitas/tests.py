@@ -54,47 +54,45 @@ class ItinerarioNumEspeciesDistintasTests(TestCase):
 
 
 class BoletoTests(TestCase):
-    def test_guarda_tipo_itinerario_fecha_y_precio_pagado(self):
+    def test_guarda_reserva_y_expone_itinerario_fecha_y_precio(self):
         itinerario = Itinerario.objects.create(
             codigo="IT-BOLETO",
             duracion_minutos=30,
             longitud_km="1.00",
             cupo_maximo=10,
         )
+        fecha = date(2026, 11, 1)
+        reserva = Reserva.objects.create(
+            itinerario=itinerario,
+            fecha=fecha,
+            cantidad_personas=1,
+        )
 
         boleto = Boleto.objects.create(
             tipo=Boleto.Tipo.ESTUDIANTE,
-            itinerario=itinerario,
-            fecha=date(2026, 11, 1),
+            reserva=reserva,
             precio_pagado=Decimal("12.50"),
         )
 
         self.assertEqual(boleto.precio_pagado, Decimal("12.50"))
         self.assertEqual(boleto.itinerario, itinerario)
+        self.assertEqual(boleto.fecha, fecha)
 
-    def test_boleto_sin_reserva_ocupa_un_cupo(self):
+    def test_boleto_requiere_reserva(self):
         itinerario = Itinerario.objects.create(
             codigo="IT-VENTA",
             duracion_minutos=30,
             longitud_km="1.00",
-            cupo_maximo=1,
-        )
-        Boleto.objects.create(
-            tipo=Boleto.Tipo.GENERAL,
-            itinerario=itinerario,
-            fecha=date(2026, 11, 1),
-            precio_pagado=Decimal("20.00"),
+            cupo_maximo=10,
         )
 
         with self.assertRaises(ValidationError):
             Boleto.objects.create(
                 tipo=Boleto.Tipo.NINO,
-                itinerario=itinerario,
-                fecha=date(2026, 11, 1),
                 precio_pagado=Decimal("10.00"),
             )
 
-    def test_boleto_asociado_a_reserva_no_duplica_el_cupo(self):
+    def test_reserva_no_puede_tener_mas_boletos_que_personas(self):
         itinerario = Itinerario.objects.create(
             codigo="IT-RES-BOLETO",
             duracion_minutos=30,
@@ -109,9 +107,7 @@ class BoletoTests(TestCase):
 
         boleto = Boleto.objects.create(
             tipo=Boleto.Tipo.GENERAL,
-            itinerario=itinerario,
             reserva=reserva,
-            fecha=reserva.fecha,
             precio_pagado=Decimal("20.00"),
         )
 
@@ -119,9 +115,7 @@ class BoletoTests(TestCase):
         with self.assertRaises(ValidationError):
             Boleto.objects.create(
                 tipo=Boleto.Tipo.GENERAL,
-                itinerario=itinerario,
                 reserva=reserva,
-                fecha=reserva.fecha,
                 precio_pagado=Decimal("20.00"),
             )
 
@@ -166,17 +160,6 @@ class ReservaCupoTests(TestCase):
         )
 
         self.assertEqual(reserva_dia_siguiente.cantidad_personas, 10)
-
-    def test_reservas_consideran_boletos_vendidos_sin_reserva(self):
-        Boleto.objects.create(
-            tipo=Boleto.Tipo.GENERAL,
-            itinerario=self.itinerario,
-            fecha=self.fecha,
-            precio_pagado=Decimal("20.00"),
-        )
-
-        with self.assertRaises(ValidationError):
-            self.crear_reserva(10)
 
     def test_al_actualizar_reserva_no_se_cuenta_dos_veces(self):
         reserva = self.crear_reserva(6)
