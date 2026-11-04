@@ -7,6 +7,10 @@ from reportes.consultas import construir_datos_reportes
 from reportes.forms import FiltroReportesForm
 
 
+def pagina_inicio(request):
+    return render(request, "reportes/portada.html")
+
+
 def _requiere_administrador(user):
     return (
         user.is_superuser

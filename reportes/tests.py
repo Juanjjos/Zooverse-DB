@@ -52,6 +52,14 @@ class ReportesTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(respuesta.url.startswith("/admin/login/"))
 
+    def test_portada_publica_muestra_enlaces_a_las_tres_secciones(self):
+        respuesta = self.client.get(reverse("inicio_publico"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, reverse("admin:index"))
+        self.assertContains(respuesta, reverse("reportes:inicio"))
+        self.assertContains(respuesta, reverse("reportes:alertas"))
+
     def test_panel_presenta_los_reportes_y_estadisticas(self):
         self.client.force_login(self.administrador)
 

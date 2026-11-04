@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123c2d">
+    <title>ZooVerse | Gestión del zoológico</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            color: #17362b;
+            background: #f4f7f1;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            margin: 0;
+            background:
+                radial-gradient(ellipse at 10% 12%, #dfead7 0, transparent 34rem),
+                #f4f7f1;
+        }
+
+        a { color: inherit; }
+
+        .contenedor {
+            width: min(1120px, calc(100% - 48px));
+            margin-inline: auto;
+        }
+
+        .barra-superior {
+            display: flex;
+            min-height: 82px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .marca {
+            display: inline-flex;
+            align-items: center;
+            gap: .75rem;
+            color: #174b37;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            text-decoration: none;
+        }
+
+        .marca-icono {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border: 1px solid #c9dbc6;
+            border-radius: 15px;
+            background: #e7f0e2;
+            font-size: 1.35rem;
+        }
+
+        .enlace-acceso {
+            color: #315a46;
+            font-size: .94rem;
+            font-weight: 700;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 4px;
+        }
+
+        main { padding: 1.25rem 0 3.5rem; }
+
+        .hero {
+            position: relative;
+            display: grid;
+            min-height: 340px;
+            grid-template-columns: 1.25fr .75fr;
+            align-items: center;
+            overflow: hidden;
+            padding: clamp(2rem, 6vw, 4.5rem);
+            border: 1px solid #285942;
+            border-radius: 30px;
+            background:
+                radial-gradient(ellipse at 82% 18%, #77a66e66, transparent 24rem),
+                linear-gradient(120deg, #123c2d, #1d593e 72%, #286247);
+            box-shadow: 0 24px 60px #123c2d20;
+            color: #fffdf4;
+        }
+
+        .hero::after {
+            position: absolute;
+            right: -5rem;
+            bottom: -10rem;
+            width: 28rem;
+            height: 28rem;
+            border: 1px solid #ffffff20;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2rem #ffffff08, 0 0 0 4rem #ffffff06;
+            content: "";
+            pointer-events: none;
+        }
+
+        .hero-contenido { position: relative; z-index: 1; max-width: 620px; }
+
+        .insignia {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            margin-bottom: 1rem;
+            padding: .48rem .8rem;
+            border: 1px solid #ffffff32;
+            border-radius: 999px;
+            background: #ffffff10;
+            color: #e3efd9;
+            font-size: .76rem;
+            font-weight: 700;
+            letter-spacing: .11em;
+            text-transform: uppercase;
+        }
+
+        .insignia span { color: #c8df8d; }
+
+        h1 {
+            max-width: 650px;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2.6rem, 6vw, 4.6rem);
+            font-weight: 500;
+            letter-spacing: -.055em;
+            line-height: 1.02;
+        }
+
+        .hero p {
+            max-width: 530px;
+            margin: 1.25rem 0 0;
+            color: #e2ebdf;
+            font-size: clamp(1rem, 2vw, 1.12rem);
+            line-height: 1.7;
+        }
+
+        .ilustracion {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            min-height: 210px;
+            place-items: center;
+            font-size: clamp(7rem, 15vw, 11rem);
+            filter: drop-shadow(0 16px 18px #091e1655);
+            transform: rotate(-7deg);
+        }
+
+        .ilustracion::before,
+        .ilustracion::after {
+            position: absolute;
+            z-index: -1;
+            width: 142px;
+            height: 68px;
+            border: 1px solid #d5e7b647;
+            border-radius: 100% 0 100% 0;
+            background: linear-gradient(135deg, #cce59b60, #cce59b05);
+            content: "";
+        }
+
+        .ilustracion::before { top: 24px; right: 3%; transform: rotate(-32deg); }
+        .ilustracion::after { bottom: 24px; left: 1%; transform: rotate(28deg) scale(.8); }
+
+        .seccion-opciones { padding-top: 2.8rem; }
+
+        .encabezado-seccion {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .sobrelinea {
+            margin: 0 0 .45rem;
+            color: #6f8d68;
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        h2 {
+            margin: 0;
+            color: #1d4231;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(1.7rem, 4vw, 2.35rem);
+            font-weight: 500;
+            letter-spacing: -.035em;
+        }
+
+        .nota {
+            margin: 0 0 .2rem;
+            color: #6c7d70;
+            font-size: .9rem;
+        }
+
+        .tarjetas {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .tarjeta {
+            display: flex;
+            min-height: 218px;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 1.4rem;
+            border: 1px solid #e1e8dc;
+            border-radius: 20px;
+            background: #fffefa;
+            box-shadow: 0 8px 24px #23442d0a;
+            text-decoration: none;
+            transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+
+        .tarjeta:hover,
+        .tarjeta:focus-visible {
+            border-color: #9cbd91;
+            box-shadow: 0 16px 34px #23442d16;
+            outline: none;
+            transform: translateY(-4px);
+        }
+
+        .tarjeta-icono {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            place-items: center;
+            border-radius: 16px;
+            background: #eaf2e4;
+            font-size: 1.45rem;
+        }
+
+        .tarjeta:nth-child(2) .tarjeta-icono { background: #edf1dc; }
+        .tarjeta:nth-child(3) .tarjeta-icono { background: #f6ecd8; }
+
+        .tarjeta h3 {
+            margin: 0;
+            color: #1e4532;
+            font-size: 1.08rem;
+        }
+
+        .tarjeta p {
+            margin: .55rem 0 1.1rem;
+            color: #637368;
+            font-size: .92rem;
+            line-height: 1.55;
+        }
+
+        .tarjeta-accion {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            margin-top: auto;
+            color: #286346;
+            font-size: .9rem;
+            font-weight: 800;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dce5d8;
+            color: #718074;
+            font-size: .82rem;
+        }
+
+        @media (max-width: 760px) {
+            .hero { grid-template-columns: 1fr; }
+            .ilustracion {
+                position: absolute;
+                right: -1.5rem;
+                bottom: -1rem;
+                min-height: 0;
+                font-size: 7rem;
+                opacity: .24;
+            }
+            .hero-contenido { max-width: 100%; }
+            .tarjetas { grid-template-columns: 1fr; }
+            .tarjeta { min-height: 190px; }
+            .encabezado-seccion { align-items: flex-start; flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .contenedor { width: min(100% - 32px, 1120px); }
+            .barra-superior { min-height: 70px; }
+            .hero { min-height: 320px; border-radius: 23px; }
+            footer { flex-direction: column; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="contenedor barra-superior">
+        <a class="marca" href="{% url 'inicio_publico' %}" aria-label="ZooVerse, inicio">
+            <span class="marca-icono" aria-hidden="true">🐾</span>
+            <span>ZooVerse</span>
+        </a>
+        <a class="enlace-acceso" href="{% url 'admin:index' %}">Acceso al sistema <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="contenedor">
+        <section class="hero" aria-labelledby="titulo-principal">
+            <div class="hero-contenido">
+                <div class="insignia"><span aria-hidden="true">✦</span> Un zoológico, mejor conectado</div>
+                <h1 id="titulo-principal">Bienvenido a ZooVerse</h1>
+                <p>Un espacio para cuidar la vida silvestre y coordinar cada detalle del zoológico. Elige por dónde quieres empezar.</p>
+            </div>
+            <div class="ilustracion" aria-hidden="true">🦒</div>
+        </section>
+
+        <section class="seccion-opciones" aria-labelledby="titulo-opciones">
+            <div class="encabezado-seccion">
+                <div>
+                    <p class="sobrelinea">Tu espacio de trabajo</p>
+                    <h2 id="titulo-opciones">¿Qué necesitas hacer?</h2>
+                </div>
+                <p class="nota">Selecciona una sección para continuar.</p>
+            </div>
+
+            <nav class="tarjetas" aria-label="Secciones de ZooVerse">
+                <a class="tarjeta" href="{% url 'admin:index' %}">
+                    <span class="tarjeta-icono" aria-hidden="true">🌿</span>
+                    <h3>Administración</h3>
+                    <p>Gestiona especies, personal, itinerarios, salud, alimentación y reservas.</p>
+                    <span class="tarjeta-accion">Entrar al administrador <span aria-hidden="true">→</span></span>
+                </a>
+                <a class="tarjeta" href="{% url 'reportes:inicio' %}">
+                    <span class="tarjeta-icono" aria-hidden="true">📊</span>
+                    <h3>Reportes y estadísticas</h3>
+                    <p>Consulta actividad, ingresos, ocupación e indicadores del zoológico.</p>
+                    <span class="tarjeta-accion">Ver reportes <span aria-hidden="true">→</span></span>
+                </a>
+                <a class="tarjeta" href="{% url 'reportes:alertas' %}">
+                    <span class="tarjeta-icono" aria-hidden="true">🔔</span>
+                    <h3>Panel de alertas</h3>
+                    <p>Revisa vacunas, controles veterinarios, inventario y mantenimientos.</p>
+                    <span class="tarjeta-accion">Revisar alertas <span aria-hidden="true">→</span></span>
+                </a>
+            </nav>
+        </section>
+
+        <footer>
+            <span>ZooVerse · Gestión responsable del zoológico</span>
+            <span>Para acceder a las secciones internas, inicia sesión con una cuenta autorizada.</span>
+        </footer>
+    </main>
+</body>
+</html>
