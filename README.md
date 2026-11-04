@@ -221,7 +221,7 @@ erDiagram
     }
     INVENTARIO_ALIMENTO {
         bigint id PK
-        bigint tipo_alimento_id FK_UK
+        bigint tipo_alimento_id FK
         decimal cantidad_disponible
         decimal umbral_minimo
     }
