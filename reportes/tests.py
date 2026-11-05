@@ -52,13 +52,59 @@ class ReportesTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         self.assertTrue(respuesta.url.startswith("/admin/login/"))
 
-    def test_portada_publica_muestra_enlaces_a_las_tres_secciones(self):
+    def test_portada_publica_muestra_acceso_al_sistema(self):
         respuesta = self.client.get(reverse("inicio_publico"))
 
         self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, reverse("admin:login"))
+
+    def test_portada_no_muestra_secciones_restringidas_a_anonimo(self):
+        respuesta = self.client.get(reverse("inicio_publico"))
+
+        self.assertContains(respuesta, reverse("admin:login"))
+        self.assertNotContains(respuesta, reverse("reportes:inicio"))
+        self.assertNotContains(respuesta, reverse("reportes:alertas"))
+        self.assertNotContains(respuesta, "Reportes y estadísticas")
+        self.assertNotContains(respuesta, "Panel de alertas")
+
+    def test_portada_no_muestra_reportes_a_usuario_de_otro_rol(self):
+        guia = User.objects.create_user(
+            username="guia_portada",
+            password="test-password",
+            is_staff=True,
+        )
+        grupo_guia, _ = Group.objects.get_or_create(name="Guía")
+        guia.groups.add(grupo_guia)
+        self.client.force_login(guia)
+
+        respuesta = self.client.get(reverse("inicio_publico"))
+
         self.assertContains(respuesta, reverse("admin:index"))
+        self.assertNotContains(respuesta, reverse("reportes:inicio"))
+        self.assertNotContains(respuesta, reverse("reportes:alertas"))
+        self.assertNotContains(respuesta, "Reportes y estadísticas")
+        self.assertNotContains(respuesta, "Panel de alertas")
+
+    def test_portada_muestra_reportes_a_administrador(self):
+        self.client.force_login(self.administrador)
+
+        respuesta = self.client.get(reverse("inicio_publico"))
+
         self.assertContains(respuesta, reverse("reportes:inicio"))
         self.assertContains(respuesta, reverse("reportes:alertas"))
+
+    def test_admin_usa_marca_zooVerse_en_lugar_de_django(self):
+        superusuario = User.objects.create_superuser(
+            username="superuser_admin_ui",
+            email="superuser-admin-ui@example.com",
+            password="test-password",
+        )
+        self.client.force_login(superusuario)
+
+        respuesta = self.client.get(reverse("admin:index"))
+
+        self.assertContains(respuesta, "ZooVerse · Centro de gestión")
+        self.assertNotContains(respuesta, "Django administration")
 
     def test_panel_presenta_los_reportes_y_estadisticas(self):
         self.client.force_login(self.administrador)

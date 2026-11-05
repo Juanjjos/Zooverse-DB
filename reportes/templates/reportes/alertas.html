@@ -26,8 +26,13 @@
         <h1>ZooVerse: panel de alertas</h1>
         <p>Alertas vigentes al {{ alertas.hoy|date:"d/m/Y" }}.</p>
         <nav>
-            <a href="{% url 'reportes:inicio' %}">Reportes y estadísticas</a>
-            <a href="{% url 'admin:index' %}">Administración</a>
+            <a href="{% url 'inicio_publico' %}">Inicio</a>
+            {% if puede_ver_reportes %}
+                <a href="{% url 'reportes:inicio' %}">Reportes y estadísticas</a>
+            {% endif %}
+            {% if user.is_staff %}
+                <a href="{% url 'admin:index' %}">Administración</a>
+            {% endif %}
         </nav>
     </header>
     <main>

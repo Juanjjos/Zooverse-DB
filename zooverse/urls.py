@@ -20,6 +20,10 @@ from django.urls import include, path
 
 from reportes import views as reportes_views
 
+admin.site.site_header = "ZooVerse | Centro de gestión"
+admin.site.site_title = "ZooVerse"
+admin.site.index_title = "Panel de gestión del zoológico"
+
 urlpatterns = [
     path("", reportes_views.pagina_inicio, name="inicio_publico"),
     path("admin/", admin.site.urls),

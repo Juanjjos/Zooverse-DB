@@ -8,7 +8,19 @@ from reportes.forms import FiltroReportesForm
 
 
 def pagina_inicio(request):
-    return render(request, "reportes/portada.html")
+    puede_administrar = request.user.is_authenticated and request.user.is_staff
+    puede_ver_reportes = (
+        request.user.is_authenticated
+        and _requiere_administrador(request.user)
+    )
+    return render(
+        request,
+        "reportes/portada.html",
+        {
+            "puede_administrar": puede_administrar,
+            "puede_ver_reportes": puede_ver_reportes,
+        },
+    )
 
 
 def _requiere_administrador(user):
@@ -39,6 +51,7 @@ def inicio(request):
         {
             "formulario": formulario,
             "datos_reportes": datos_reportes,
+            "puede_ver_reportes": True,
         },
     )
 
@@ -51,5 +64,8 @@ def panel_alertas(request):
     return render(
         request,
         "reportes/alertas.html",
-        {"alertas": obtener_alertas()},
+        {
+            "alertas": obtener_alertas(),
+            "puede_ver_reportes": True,
+        },
     )

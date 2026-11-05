@@ -315,7 +315,11 @@
             <span class="marca-icono" aria-hidden="true">🐾</span>
             <span>ZooVerse</span>
         </a>
-        <a class="enlace-acceso" href="{% url 'admin:index' %}">Acceso al sistema <span aria-hidden="true">↗</span></a>
+        {% if puede_administrar %}
+            <a class="enlace-acceso" href="{% url 'admin:index' %}">Administración <span aria-hidden="true">↗</span></a>
+        {% elif not user.is_authenticated %}
+            <a class="enlace-acceso" href="{% url 'admin:login' %}">Iniciar sesión <span aria-hidden="true">↗</span></a>
+        {% endif %}
     </header>
 
     <main class="contenedor">
@@ -338,24 +342,35 @@
             </div>
 
             <nav class="tarjetas" aria-label="Secciones de ZooVerse">
-                <a class="tarjeta" href="{% url 'admin:index' %}">
-                    <span class="tarjeta-icono" aria-hidden="true">🌿</span>
-                    <h3>Administración</h3>
-                    <p>Gestiona especies, personal, itinerarios, salud, alimentación y reservas.</p>
-                    <span class="tarjeta-accion">Entrar al administrador <span aria-hidden="true">→</span></span>
-                </a>
-                <a class="tarjeta" href="{% url 'reportes:inicio' %}">
-                    <span class="tarjeta-icono" aria-hidden="true">📊</span>
-                    <h3>Reportes y estadísticas</h3>
-                    <p>Consulta actividad, ingresos, ocupación e indicadores del zoológico.</p>
-                    <span class="tarjeta-accion">Ver reportes <span aria-hidden="true">→</span></span>
-                </a>
-                <a class="tarjeta" href="{% url 'reportes:alertas' %}">
-                    <span class="tarjeta-icono" aria-hidden="true">🔔</span>
-                    <h3>Panel de alertas</h3>
-                    <p>Revisa vacunas, controles veterinarios, inventario y mantenimientos.</p>
-                    <span class="tarjeta-accion">Revisar alertas <span aria-hidden="true">→</span></span>
-                </a>
+                {% if puede_administrar %}
+                    <a class="tarjeta" href="{% url 'admin:index' %}">
+                        <span class="tarjeta-icono" aria-hidden="true">🌿</span>
+                        <h3>Administración</h3>
+                        <p>Gestiona especies, personal, itinerarios, salud, alimentación y reservas.</p>
+                        <span class="tarjeta-accion">Entrar al sistema <span aria-hidden="true">→</span></span>
+                    </a>
+                {% elif not user.is_authenticated %}
+                    <a class="tarjeta" href="{% url 'admin:login' %}">
+                        <span class="tarjeta-icono" aria-hidden="true">🔐</span>
+                        <h3>Acceso al sistema</h3>
+                        <p>Inicia sesión con la cuenta que te asignó el administrador del zoológico.</p>
+                        <span class="tarjeta-accion">Iniciar sesión <span aria-hidden="true">→</span></span>
+                    </a>
+                {% endif %}
+                {% if puede_ver_reportes %}
+                    <a class="tarjeta" href="{% url 'reportes:inicio' %}">
+                        <span class="tarjeta-icono" aria-hidden="true">📊</span>
+                        <h3>Reportes y estadísticas</h3>
+                        <p>Consulta actividad, ingresos, ocupación e indicadores del zoológico.</p>
+                        <span class="tarjeta-accion">Ver reportes <span aria-hidden="true">→</span></span>
+                    </a>
+                    <a class="tarjeta" href="{% url 'reportes:alertas' %}">
+                        <span class="tarjeta-icono" aria-hidden="true">🔔</span>
+                        <h3>Panel de alertas</h3>
+                        <p>Revisa vacunas, controles veterinarios, inventario y mantenimientos.</p>
+                        <span class="tarjeta-accion">Revisar alertas <span aria-hidden="true">→</span></span>
+                    </a>
+                {% endif %}
             </nav>
         </section>
 

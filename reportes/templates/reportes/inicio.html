@@ -27,7 +27,15 @@
     <header>
         <h1>ZooVerse: reportes y estadísticas</h1>
         <p>Consultas de gestión basadas en los registros del zoológico.</p>
-        <nav><a href="{% url 'reportes:alertas' %}" style="color: white;">Panel de alertas</a></nav>
+        <nav>
+            <a href="{% url 'inicio_publico' %}" style="color: white;">Inicio</a>
+            {% if puede_ver_reportes %}
+                <a href="{% url 'reportes:alertas' %}" style="color: white;">Panel de alertas</a>
+            {% endif %}
+            {% if user.is_staff %}
+                <a href="{% url 'admin:index' %}" style="color: white;">Administración</a>
+            {% endif %}
+        </nav>
     </header>
     <main>
         <section>
