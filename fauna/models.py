@@ -1,8 +1,10 @@
 from django.db import models
 from django.db.models import Q
 
+from common.models import SoftDeleteModel
 
-class Continente(models.Model):
+
+class Continente(SoftDeleteModel):
     nombre = models.CharField(
         max_length=80,
         unique=True,
@@ -18,7 +20,7 @@ class Continente(models.Model):
         return self.nombre
 
 
-class Habitat(models.Model):
+class Habitat(SoftDeleteModel):
     nombre = models.CharField(max_length=120, verbose_name="nombre")
     clima = models.CharField(max_length=100, verbose_name="clima")
     vegetacion = models.CharField(max_length=150, verbose_name="vegetación")
@@ -37,7 +39,7 @@ class Habitat(models.Model):
         return self.nombre
 
 
-class Zona(models.Model):
+class Zona(SoftDeleteModel):
     nombre = models.CharField(max_length=120, verbose_name="nombre")
     extension_hectareas = models.DecimalField(
         max_digits=10,
@@ -60,7 +62,7 @@ class Zona(models.Model):
         return self.nombre
 
 
-class Especie(models.Model):
+class Especie(SoftDeleteModel):
     nombre_espanol = models.CharField(
         max_length=120,
         verbose_name="nombre en español",

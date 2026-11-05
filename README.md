@@ -103,6 +103,7 @@ Las pruebas usan la configuración de base de datos de Django y verifican funcio
 | Ruta | Responsabilidad |
 |---|---|
 | `zooverse/` | Configuración del proyecto, conexión a PostgreSQL y rutas principales. |
+| `common/` | Modelo abstracto y administración reutilizable para borrado lógico. |
 | `fauna/` | Continentes, hábitats, zonas y especies. |
 | `personal/` | Guías, cuidadores y asignaciones de cuidado. |
 | `visitas/` | Itinerarios, asignaciones de guías, reservas y boletos. |
@@ -262,6 +263,8 @@ erDiagram
 - Cada boleto pertenece a una reserva. El itinerario y la fecha se obtienen de ella, evitando repetir esos datos en cada boleto. Una reserva controla el total de personas y la validación impide superar el cupo del itinerario en la fecha reservada.
 - Una entrega descuenta la cantidad del inventario del alimento correspondiente; al eliminarla, el inventario se restaura. Las operaciones usan transacciones para mantener ambas cantidades consistentes.
 - Una restricción de base de datos obliga a que cada mantenimiento tenga una sola ubicación: zona o hábitat, pero no ambas.
+- Los modelos de negocio usan borrado lógico: al eliminar desde el Admin se conservan la fila, sus relaciones y la fecha de eliminación; las listas muestran activos por defecto y permiten consultar/restaurar eliminados. Las claves únicas siguen reservadas mientras el registro esté eliminado. Al archivar una entrega de alimento se reintegra el inventario; al restaurarla, se vuelve a descontar y se valida que haya existencias.
+- Para restaurar un registro, abre su sección en el Admin, cambia el filtro **Estado del registro** a **Eliminados**, selecciona las filas y ejecuta la acción **Restaurar registros seleccionados**. La opción de eliminación lógica aparece para los registros activos.
 - Se usan llaves foráneas, restricciones de unicidad y validaciones positivas/no negativas para reforzar integridad. Hay índices en campos utilizados por consultas de fechas, reportes y alertas.
 
 ## Roles y permisos

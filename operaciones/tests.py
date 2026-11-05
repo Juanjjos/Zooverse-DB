@@ -2,12 +2,14 @@ from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
+from django.urls import reverse
 
 from fauna.models import Especie, Habitat, Zona
 from operaciones.models import (
@@ -82,12 +84,59 @@ class EntregaAlimentoTests(TestCase):
         self.assertEqual(self.inventario.cantidad_disponible, Decimal("15.000"))
 
     def test_eliminar_entrega_reintegra_inventario_incluso_en_borrado_masivo(self):
-        self.crear_entrega("3.000")
+        entrega = self.crear_entrega("3.000")
 
         EntregaAlimento.objects.all().delete()
 
         self.inventario.refresh_from_db()
         self.assertEqual(self.inventario.cantidad_disponible, Decimal("20.000"))
+        entrega_eliminada = EntregaAlimento.all_objects.get(pk=entrega.pk)
+        self.assertTrue(entrega_eliminada.eliminado)
+
+        entrega_eliminada.restore()
+
+        self.inventario.refresh_from_db()
+        self.assertEqual(self.inventario.cantidad_disponible, Decimal("17.000"))
+        self.assertTrue(EntregaAlimento.objects.filter(pk=entrega.pk).exists())
+
+    def test_restaurar_entrega_desde_admin_vuelve_a_descontar_inventario(self):
+        entrega = self.crear_entrega("3.000")
+        entrega.delete()
+        usuario = get_user_model().objects.create_superuser(
+            username="admin_entregas",
+            email="admin-entregas@example.com",
+            password="test-password",
+        )
+        self.client.force_login(usuario)
+
+        respuesta = self.client.post(
+            (
+                f"{reverse('admin:operaciones_entregaalimento_changelist')}"
+                "?estado_registro=eliminados"
+            ),
+            {
+                "action": "restaurar_registros",
+                "_selected_action": [entrega.pk],
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(EntregaAlimento.objects.filter(pk=entrega.pk).exists())
+        self.inventario.refresh_from_db()
+        self.assertEqual(self.inventario.cantidad_disponible, Decimal("17.000"))
+
+    def test_no_restaurar_entrega_si_inventario_es_insuficiente(self):
+        entrega = self.crear_entrega("3.000")
+        entrega.delete()
+        self.inventario.cantidad_disponible = Decimal("2.000")
+        self.inventario.save(update_fields=["cantidad_disponible"])
+
+        with self.assertRaises(ValidationError):
+            entrega.restore()
+
+        self.assertFalse(EntregaAlimento.objects.filter(pk=entrega.pk).exists())
+        self.inventario.refresh_from_db()
+        self.assertEqual(self.inventario.cantidad_disponible, Decimal("2.000"))
 
 
 class MantenimientoTests(TestCase):

@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from common.admin import SoftDeleteAdmin
 from visitas.models import (
     AsignacionGuia,
     Boleto,
@@ -26,7 +27,7 @@ class ReservaInline(admin.TabularInline):
 
 
 @admin.register(Itinerario)
-class ItinerarioAdmin(admin.ModelAdmin):
+class ItinerarioAdmin(SoftDeleteAdmin):
     list_display = [
         "codigo",
         "duracion_minutos",
@@ -41,7 +42,7 @@ class ItinerarioAdmin(admin.ModelAdmin):
 
 
 @admin.register(AsignacionGuia)
-class AsignacionGuiaAdmin(admin.ModelAdmin):
+class AsignacionGuiaAdmin(SoftDeleteAdmin):
     list_display = ["itinerario", "guia", "hora"]
     list_filter = ["itinerario"]
     search_fields = ["itinerario__codigo", "guia__nombre"]
@@ -49,7 +50,7 @@ class AsignacionGuiaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Reserva)
-class ReservaAdmin(admin.ModelAdmin):
+class ReservaAdmin(SoftDeleteAdmin):
     list_display = ["itinerario", "cantidad_personas", "fecha"]
     list_filter = ["fecha", "itinerario"]
     search_fields = ["itinerario__codigo"]
@@ -58,7 +59,7 @@ class ReservaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Boleto)
-class BoletoAdmin(admin.ModelAdmin):
+class BoletoAdmin(SoftDeleteAdmin):
     list_display = ["tipo", "itinerario", "fecha", "precio_pagado", "reserva"]
     list_filter = ["tipo"]
     search_fields = ["reserva__itinerario__codigo"]

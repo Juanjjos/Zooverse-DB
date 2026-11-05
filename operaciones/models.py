@@ -6,8 +6,10 @@ from django.db.models import Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
+from common.models import SoftDeleteModel
 
-class RevisionVeterinaria(models.Model):
+
+class RevisionVeterinaria(SoftDeleteModel):
     especie = models.ForeignKey(
         "fauna.Especie",
         on_delete=models.PROTECT,
@@ -52,7 +54,7 @@ class RevisionVeterinaria(models.Model):
         return f"Revisión de {self.especie} ({self.fecha})"
 
 
-class Vacuna(models.Model):
+class Vacuna(SoftDeleteModel):
     especie = models.ForeignKey(
         "fauna.Especie",
         on_delete=models.PROTECT,
@@ -86,7 +88,7 @@ class Vacuna(models.Model):
         return f"{self.nombre} - {self.especie}"
 
 
-class TipoAlimento(models.Model):
+class TipoAlimento(SoftDeleteModel):
     class Unidad(models.TextChoices):
         KILOGRAMO = "kg", "Kilogramo"
         GRAMO = "g", "Gramo"
@@ -110,7 +112,7 @@ class TipoAlimento(models.Model):
         return f"{self.nombre} ({self.get_unidad_display()})"
 
 
-class Dieta(models.Model):
+class Dieta(SoftDeleteModel):
     especie = models.ForeignKey(
         "fauna.Especie",
         on_delete=models.PROTECT,
@@ -148,7 +150,7 @@ class Dieta(models.Model):
         return f"{self.especie} - {self.tipo_alimento}"
 
 
-class InventarioAlimento(models.Model):
+class InventarioAlimento(SoftDeleteModel):
     tipo_alimento = models.OneToOneField(
         TipoAlimento,
         on_delete=models.PROTECT,
@@ -187,7 +189,7 @@ class InventarioAlimento(models.Model):
         return f"{self.tipo_alimento}: {self.cantidad_disponible}"
 
 
-class EntregaAlimento(models.Model):
+class EntregaAlimento(SoftDeleteModel):
     cuidador = models.ForeignKey(
         "personal.Cuidador",
         on_delete=models.PROTECT,
@@ -236,6 +238,39 @@ class EntregaAlimento(models.Model):
 
     def __str__(self):
         return f"{self.especie} - {self.tipo_alimento} ({self.cantidad})"
+
+    def before_soft_delete(self):
+        with transaction.atomic():
+            inventario = (
+                InventarioAlimento.objects.select_for_update()
+                .filter(tipo_alimento_id=self.tipo_alimento_id)
+                .first()
+            )
+            if inventario is None:
+                raise ValidationError(
+                    "No se puede eliminar la entrega porque no existe su inventario."
+                )
+            inventario.cantidad_disponible += self.cantidad
+            inventario.save(update_fields=["cantidad_disponible"])
+
+    def before_restore(self):
+        with transaction.atomic():
+            inventario = (
+                InventarioAlimento.objects.select_for_update()
+                .filter(tipo_alimento_id=self.tipo_alimento_id)
+                .first()
+            )
+            if inventario is None:
+                raise ValidationError(
+                    "No se puede restaurar la entrega porque no existe su inventario."
+                )
+            if inventario.cantidad_disponible < self.cantidad:
+                raise ValidationError(
+                    f"Inventario insuficiente de {inventario.tipo_alimento} "
+                    "para restaurar la entrega."
+                )
+            inventario.cantidad_disponible -= self.cantidad
+            inventario.save(update_fields=["cantidad_disponible"])
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
@@ -308,7 +343,7 @@ def restablecer_inventario_al_eliminar_entrega(sender, instance, **kwargs):
         inventario.save(update_fields=["cantidad_disponible"])
 
 
-class Mantenimiento(models.Model):
+class Mantenimiento(SoftDeleteModel):
     zona = models.ForeignKey(
         "fauna.Zona",
         on_delete=models.PROTECT,

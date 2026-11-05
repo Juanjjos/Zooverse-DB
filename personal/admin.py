@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from common.admin import SoftDeleteAdmin
 from personal.models import Cuidador, CuidadoEspecie, Guia
 from visitas.models import AsignacionGuia
 
@@ -17,7 +18,7 @@ class AsignacionGuiaInline(admin.TabularInline):
 
 
 @admin.register(Guia)
-class GuiaAdmin(admin.ModelAdmin):
+class GuiaAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "telefono", "fecha_inicio"]
     list_filter = ["fecha_inicio"]
     search_fields = ["nombre", "telefono", "direccion"]
@@ -25,7 +26,7 @@ class GuiaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Cuidador)
-class CuidadorAdmin(admin.ModelAdmin):
+class CuidadorAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "telefono", "fecha_ingreso"]
     list_filter = ["fecha_ingreso"]
     search_fields = ["nombre", "telefono", "direccion"]
@@ -33,7 +34,7 @@ class CuidadorAdmin(admin.ModelAdmin):
 
 
 @admin.register(CuidadoEspecie)
-class CuidadoEspecieAdmin(admin.ModelAdmin):
+class CuidadoEspecieAdmin(SoftDeleteAdmin):
     list_display = ["cuidador", "especie", "fecha_inicio"]
     list_filter = ["fecha_inicio"]
     search_fields = [

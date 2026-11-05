@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from common.admin import SoftDeleteAdmin
 from fauna.models import Continente, Especie, Habitat, Zona
 from operaciones.models import (
     Dieta,
@@ -66,14 +67,14 @@ class MantenimientosHabitatInline(admin.TabularInline):
 
 
 @admin.register(Continente)
-class ContinenteAdmin(admin.ModelAdmin):
+class ContinenteAdmin(SoftDeleteAdmin):
     list_display = ["nombre"]
     search_fields = ["nombre"]
     inlines = [ContinentesInline]
 
 
 @admin.register(Habitat)
-class HabitatAdmin(admin.ModelAdmin):
+class HabitatAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "clima", "vegetacion"]
     list_filter = ["clima"]
     search_fields = ["nombre", "clima", "vegetacion"]
@@ -82,14 +83,14 @@ class HabitatAdmin(admin.ModelAdmin):
 
 
 @admin.register(Zona)
-class ZonaAdmin(admin.ModelAdmin):
+class ZonaAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "extension_hectareas"]
     search_fields = ["nombre"]
     inlines = [MantenimientosZonaInline]
 
 
 @admin.register(Especie)
-class EspecieAdmin(admin.ModelAdmin):
+class EspecieAdmin(SoftDeleteAdmin):
     list_display = ["nombre_espanol", "nombre_cientifico", "zona"]
     list_filter = ["zona", "habitats"]
     search_fields = ["nombre_espanol", "nombre_cientifico", "descripcion"]

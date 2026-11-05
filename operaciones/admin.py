@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from common.admin import SoftDeleteAdmin
 from operaciones.models import (
     Dieta,
     EntregaAlimento,
@@ -12,7 +13,7 @@ from operaciones.models import (
 
 
 @admin.register(RevisionVeterinaria)
-class RevisionVeterinariaAdmin(admin.ModelAdmin):
+class RevisionVeterinariaAdmin(SoftDeleteAdmin):
     list_display = ["especie", "fecha", "fecha_proxima_revision"]
     list_filter = ["fecha", "fecha_proxima_revision"]
     search_fields = ["especie__nombre_espanol", "especie__nombre_cientifico"]
@@ -21,7 +22,7 @@ class RevisionVeterinariaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Vacuna)
-class VacunaAdmin(admin.ModelAdmin):
+class VacunaAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "especie", "fecha_aplicacion", "fecha_proxima"]
     list_filter = ["fecha_aplicacion", "fecha_proxima", "nombre"]
     search_fields = ["nombre", "especie__nombre_espanol"]
@@ -29,14 +30,14 @@ class VacunaAdmin(admin.ModelAdmin):
 
 
 @admin.register(TipoAlimento)
-class TipoAlimentoAdmin(admin.ModelAdmin):
+class TipoAlimentoAdmin(SoftDeleteAdmin):
     list_display = ["nombre", "unidad"]
     list_filter = ["unidad"]
     search_fields = ["nombre"]
 
 
 @admin.register(Dieta)
-class DietaAdmin(admin.ModelAdmin):
+class DietaAdmin(SoftDeleteAdmin):
     list_display = ["especie", "tipo_alimento", "cantidad_diaria"]
     list_filter = ["tipo_alimento"]
     search_fields = ["especie__nombre_espanol", "tipo_alimento__nombre"]
@@ -44,7 +45,7 @@ class DietaAdmin(admin.ModelAdmin):
 
 
 @admin.register(InventarioAlimento)
-class InventarioAlimentoAdmin(admin.ModelAdmin):
+class InventarioAlimentoAdmin(SoftDeleteAdmin):
     list_display = ["tipo_alimento", "cantidad_disponible", "umbral_minimo"]
     list_filter = ["tipo_alimento__unidad"]
     search_fields = ["tipo_alimento__nombre"]
@@ -52,7 +53,7 @@ class InventarioAlimentoAdmin(admin.ModelAdmin):
 
 
 @admin.register(EntregaAlimento)
-class EntregaAlimentoAdmin(admin.ModelAdmin):
+class EntregaAlimentoAdmin(SoftDeleteAdmin):
     list_display = ["fecha", "cuidador", "especie", "tipo_alimento", "cantidad"]
     list_filter = ["fecha", "tipo_alimento"]
     search_fields = [
@@ -65,7 +66,7 @@ class EntregaAlimentoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Mantenimiento)
-class MantenimientoAdmin(admin.ModelAdmin):
+class MantenimientoAdmin(SoftDeleteAdmin):
     list_display = [
         "fecha",
         "ubicacion",

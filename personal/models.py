@@ -1,7 +1,9 @@
 from django.db import models
 
+from common.models import SoftDeleteModel
 
-class Guia(models.Model):
+
+class Guia(SoftDeleteModel):
     nombre = models.CharField(max_length=150, verbose_name="nombre")
     direccion = models.CharField(max_length=255, verbose_name="dirección")
     telefono = models.CharField(max_length=30, verbose_name="teléfono")
@@ -16,7 +18,7 @@ class Guia(models.Model):
         return self.nombre
 
 
-class Cuidador(models.Model):
+class Cuidador(SoftDeleteModel):
     nombre = models.CharField(max_length=150, verbose_name="nombre")
     direccion = models.CharField(max_length=255, verbose_name="dirección")
     telefono = models.CharField(max_length=30, verbose_name="teléfono")
@@ -31,7 +33,7 @@ class Cuidador(models.Model):
         return self.nombre
 
 
-class CuidadoEspecie(models.Model):
+class CuidadoEspecie(SoftDeleteModel):
     cuidador = models.ForeignKey(
         Cuidador,
         on_delete=models.PROTECT,

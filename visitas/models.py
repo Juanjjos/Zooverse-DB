@@ -3,8 +3,10 @@ from django.db import models, transaction
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
+from common.models import SoftDeleteModel
 
-class Itinerario(models.Model):
+
+class Itinerario(SoftDeleteModel):
     codigo = models.CharField(
         max_length=20,
         unique=True,
@@ -60,7 +62,7 @@ class Itinerario(models.Model):
         return self.codigo
 
 
-class AsignacionGuia(models.Model):
+class AsignacionGuia(SoftDeleteModel):
     guia = models.ForeignKey(
         "personal.Guia",
         on_delete=models.PROTECT,
@@ -90,7 +92,7 @@ class AsignacionGuia(models.Model):
         return f"{self.guia} - {self.itinerario} ({self.hora:%H:%M})"
 
 
-class Boleto(models.Model):
+class Boleto(SoftDeleteModel):
     class Tipo(models.TextChoices):
         GENERAL = "general", "General"
         ESTUDIANTE = "estudiante", "Estudiante"
@@ -185,7 +187,7 @@ class Boleto(models.Model):
         return f"{self.get_tipo_display()} - {self.itinerario} ({self.fecha})"
 
 
-class Reserva(models.Model):
+class Reserva(SoftDeleteModel):
     itinerario = models.ForeignKey(
         Itinerario,
         on_delete=models.PROTECT,
